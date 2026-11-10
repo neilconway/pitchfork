@@ -295,6 +295,29 @@ EOF
   pitchfork stop custom_delay
 }
 
+@test "start without a terminal prints the ready wait once" {
+  create_pitchfork_toml <<EOF
+[daemons.piped]
+run = "sleep 20"
+ready_delay = 2
+EOF
+
+  run pitchfork start piped
+  assert_success
+
+  # An animated spinner would redraw this line several times a second.
+  local waits
+  waits=$(grep -c "piped\] waiting for delay" <<<"$output")
+  [[ $waits -eq 1 ]] || {
+    echo "expected one wait line, got $waits:" >&2
+    echo "$output" >&2
+    return 1
+  }
+  refute_output --partial $'\e[1A'
+
+  pitchfork stop piped
+}
+
 @test "ready output pattern matches and returns early" {
   create_pitchfork_toml <<EOF
 [daemons.ready_pattern]
